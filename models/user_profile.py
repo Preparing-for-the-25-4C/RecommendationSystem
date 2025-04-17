@@ -9,16 +9,7 @@ from typing import Dict, List, Set
 class UserProfileManager:
 
     def __init__(self):
-        # user_profiles 数据结构示例：
-        # {
-        #   user_id1: {
-        #       "items": [...],
-        #       "embedding": np.array([...]),
-        #       "tag_weights": {"贪心算法": 2.0, "排序算法": 1.0, ...},
-        #       ...
-        #   },
-        #   user_id2: {...}
-        # }
+
         self.user_profiles: Dict[int, Dict] = {}
 
         # 这三个权重用来计算 raw_score，如果 CSV 中没有 is_fav / correct_rate，可以忽略
@@ -63,8 +54,8 @@ class UserProfileManager:
                         "items": [],
                         "embedding": np.array([], dtype=np.float32),
                         "tag_weights": {},
-                        "done_questions": set(),       # 若需要记录做题信息
-                        "recently_recommended": set()  # 若需要记录最近推荐信息
+                        "done_questions": set(),
+                        "recently_recommended": set()
                     }
 
                 # 记录当前交互信息到 items
@@ -78,16 +69,13 @@ class UserProfileManager:
                 if user_interest_str:
                     interest_tags = user_interest_str.split()
                     for tag in interest_tags:
-                        # 这里简单地每遇到一次就 +1，也可以根据 rating 等因素加权
                         self.user_profiles[uid]["tag_weights"][tag] = \
                             self.user_profiles[uid]["tag_weights"].get(tag, 0.0) + 1.0
 
-        # （可选）对所有用户的 tag_weights 做归一化处理
         self._normalize_tag_weights()
 
     def _normalize_tag_weights(self):
         """
-        可选：对 tag_weights 进行归一化（如总和归一化），
         防止有些用户出现非常大的标签累加值。
         """
         for uid, up in self.user_profiles.items():
@@ -139,7 +127,7 @@ class UserProfileManager:
 
 def demo_profile_enhancement():
     """
-    简单演示：读取 CSV，构建用户画像，检查结果
+    读取 CSV，构建用户画像，检查结果
     """
     upm = UserProfileManager()
 

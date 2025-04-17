@@ -15,7 +15,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 
-# ========== transformers 用于 BERT embedding ==========
+
 # 如果不用BERT可注释
 try:
     from transformers import AutoTokenizer, AutoModel
@@ -26,7 +26,7 @@ except ImportError:
     print("[EnhancedContentAnalysis] transformers not installed. BERT embedding will be skipped.")
     BERT_AVAILABLE = False
 
-# ========== Annoy 用于近似最近邻检索 (可选) ==========
+# ========== Annoy 用于近似最近邻检索==========
 try:
     from annoy import AnnoyIndex
 
@@ -37,13 +37,6 @@ except ImportError:
 
 
 class EnhancedContentAnalysis:
-    """
-    增强版离线内容分析:
-      - 提取多种特征(难度、知识点解析) => question["features"]
-      - 支持TF-IDF+PCA, 也可选用BERT做文本向量
-      - 支持KMeans做主题聚类 => question["cluster_id"]
-      - 可选Annoy构建近似NN索引
-    """
 
     def __init__(self,
                  use_bert=False,
@@ -83,9 +76,7 @@ class EnhancedContentAnalysis:
         self.annoy_index = None
 
     def init_bert(self):
-        """
-        如果 use_bert=True 则加载模型/Tokenizer
-        """
+
         if not self.use_bert:
             return
         print(f"[EnhancedContentAnalysis] Loading BERT model {self.bert_model_name}...")
@@ -95,13 +86,7 @@ class EnhancedContentAnalysis:
         print("[EnhancedContentAnalysis] BERT loaded.")
 
     def build_question_features(self, questions):
-        """
-        示例: 分析题目文本, 提取“难度”“知识点”“额外特征”等, 存入 question["features"]
-        这里仅演示一些简单规则:
-          - 通过题目tags/描述中有 '字符串' => features["cat_string"]=1
-          - or 用正则判断 'easy|hard' => features["diff"]=someValue
-        你可自定义更多解析方式
-        """
+
         for q in questions:
             q_text = q.get("text", "").lower()
             q_tags = q.get("tags", [])
@@ -121,7 +106,6 @@ class EnhancedContentAnalysis:
                 feat["is_enum"] = 0
 
             # 2) 简单判断难度
-            # e.g. 如果描述里含“简单|入门”，认为 easy=1
             if re.search(r"(简单|入门)", q_text):
                 feat["difficulty"] = 1
             elif re.search(r"(复杂|困难)", q_text):
@@ -137,7 +121,7 @@ class EnhancedContentAnalysis:
         """
         text = q.get("text", "")
         tags = " ".join(q.get("tags", []))
-        # 也可将q["features"]转换为字符串
+        # 将q["features"]转换为字符串
         feat_str = ""
         if "features" in q:
             feat_items = [f"{k}={v}" for k, v in q["features"].items()]
@@ -147,7 +131,7 @@ class EnhancedContentAnalysis:
 
     def build_bert_vectors(self, questions):
         """
-        对question使用BERT做句向量(简化: 取[CLS]token或mean pooling)
+        对question使用BERT做句向量
         """
         if not self.use_bert:
             return None
@@ -162,7 +146,7 @@ class EnhancedContentAnalysis:
                 outputs = self.bert_model(**inputs)
                 # 取CLS向量(输出[0][:,0,:]) or mean pooling
                 cls_vec = outputs.last_hidden_state[:, 0, :]
-                # 也可以mean pooling => outputs.last_hidden_state.mean(dim=1)
+                # mean pooling => outputs.last_hidden_state.mean(dim=1)
                 embedding = cls_vec[0].numpy()  # shape: [768], e.g.
             vectors.append(embedding)
             qid_list.append(q["id"])
@@ -172,7 +156,7 @@ class EnhancedContentAnalysis:
 
     def build_tfidf_pca_vectors(self, questions):
         """
-        传统TF-IDF + PCA
+        TF-IDF + PCA
         """
         # 1) 准备文本
         corpus = []
@@ -243,14 +227,6 @@ class EnhancedContentAnalysis:
         # 将 cluster_id 写回 question
         for i, cid in enumerate(cluster_labels):
             qid = qid_list[i]
-            # 找到对应question
-            # (如果数量大,可建dict.这里示例)
-            # 也可以 question[i]["cluster_id"]=cid
-            # 这里再搜索
-            # ...
-            # 简洁: questions[i]["cluster_id"] = cid  (前提: i对应question列表顺序)
-            # 但要保证 i和question[i]能对应
-            # 这里演示: 先构建qid-> cluster
         qid_to_cluster = {}
         for i, cid in enumerate(cluster_labels):
             qid_to_cluster[qid_list[i]] = cid
@@ -284,7 +260,6 @@ class EnhancedContentAnalysis:
           1) 构建题目多维度特征
           2) 生成embedding(bert or tfidf+pca)
           3) KMeans cluster => question["cluster_id"]
-          4) 构建Annoy(可选)
         """
         if not questions:
             print("[EnhancedContentAnalysis] No questions to analyze.")
@@ -310,8 +285,6 @@ class EnhancedHotTopicAnalysis:
         self.new_item_days = new_item_days
 
     def parse_timestamp(self, ts_str):
-        # 假设timestamp是 yyyy-MM-ddTHH:mm:ss
-        # 这里简单实现, 如果解析失败则返回None
         try:
             return datetime.strptime(ts_str, "%Y-%m-%dT%H:%M:%S")
         except:
@@ -359,7 +332,6 @@ class EnhancedHotTopicAnalysis:
 
 def advanced_offline_demo(questions_csv="data.csv"):
     """
-    演示:
       - 读取 question数据
       - EnhancedContentAnalysis => embedding + cluster
       - EnhancedHotTopicAnalysis => time decay & new item boost
@@ -401,7 +373,7 @@ def advanced_offline_demo(questions_csv="data.csv"):
                                        vector_size=64,
                                        n_clusters=10)
     analyzer.run_offline_content_analysis(questions)
-    # 现在 question里会新增 cluster_id, features, vector?
+    # question里新增 cluster_id, features, vector
 
     # 3) EnhancedHotTopicAnalysis
     hot_analyzer = EnhancedHotTopicAnalysis(decay_factor=0.002,
@@ -413,9 +385,6 @@ def advanced_offline_demo(questions_csv="data.csv"):
     for i, q in enumerate(hot_list, start=1):
         print(f" #{i} => QID={q['id']}, rating={q['rating']}, views={q['views']}, "
               f"hot_score={q['hot_score']:.2f}, cluster_id={q.get('cluster_id', '?')}")
-
-    # 4) (可选) 你可以将 question更新后的信息(embedding, cluster_id, hot_score)
-    #    存储到本地json/csv, 以便后续在线加载
 
     print("[advanced_offline_demo] done.")
 

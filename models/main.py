@@ -10,29 +10,7 @@ from recommender import RecommenderService
 from collaborative_filter import CollaborativeFilterModel
 import numpy as np
 def aggregate_users_and_questions(rows):
-    """
-    将 DataPipeline 的清洗后数据(rows) => users, questions 结构。
-    users: [
-      {
-         "user_id": ...,
-         "user_interest": "...",
-         "questions": [ {"question_id":..., "rating":..., "views":...}, ... ]
-      },
-      ...
-    ]
-    questions: [
-      {
-        "id": str(question_id),
-        "text": "题目描述",
-        "tags": [...],
-        "views": int(...),
-        "rating": int(...),
-        "timestamp": "...",
-        ...
-      },
-      ...
-    ]
-    """
+
     from collections import defaultdict
 
     user_map = {}
@@ -119,12 +97,11 @@ def main():
     # 3) EnhancedContentAnalysis => embedding, cluster
     ############################
     analyzer = EnhancedContentAnalysis(
-        use_bert=False,       # 若要用BERT => True, 需安装 transformers
+        use_bert=False,
         vector_size=64,
         n_clusters=10
     )
     analyzer.run_offline_content_analysis(questions)
-    # 现在 question 里可能有 cluster_id, question["vector"]
 
     ############################
     # 4) EnhancedHotTopicAnalysis => hot_score
@@ -140,22 +117,19 @@ def main():
     # 5) UserProfile => 初始化 & update_after_question
     ############################
     profile_manager = UserProfileManager()
-    # 由于 user_profile 里写好 "embedding":..., "tag_weights":...
-    # 这里先仅进行 items => update_after_question
-    # or 也可以把 "tag_weights" 逻辑再另行处理
     for u in users:
         uid = u["user_id"]
         # user_interest
         profile_manager.user_profiles[uid] = {
             "items": [],
             "embedding": np.array([], dtype=np.float32),
-            "tag_weights": {},   # 这里若已有逻辑可写
-            "done_questions": set()  # 也可放
+            "tag_weights": {},
+            "done_questions": set()
         }
         # 记录 user_interest
         interest_str = u.get("user_interest","")
         if interest_str:
-            # 可简单拆分或保留
+
             pass
 
         # update_after_question
@@ -172,13 +146,10 @@ def main():
                 "rating": rating_val,
                 "vector": qobj.get("vector", [])
             }
-            # 这等同 profile_manager.update_after_question(uid, question_dict)
-            # 这里为了演示
+
             if "done_questions" not in profile_manager.user_profiles[uid]:
                 profile_manager.user_profiles[uid]["done_questions"]= set()
             profile_manager.user_profiles[uid]["done_questions"].add(qobj["id"])
-
-    # PS: 若要用 item-based tag_weights => 需要写 update_after_question 细节
 
     ############################
     # 6) RecommenderService => load question + hot

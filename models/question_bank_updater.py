@@ -155,7 +155,7 @@ class QuestionBankUpdater:
         while True:
             print(f"[QuestionBankUpdater] Updating question bank at {datetime.now()}")
             self.update_question_bank()
-            time.sleep(300)  # 300秒 = 5分钟
+            time.sleep(300)
 
 
 if __name__ == "__main__":

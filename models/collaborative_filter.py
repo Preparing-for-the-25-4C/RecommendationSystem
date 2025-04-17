@@ -5,7 +5,6 @@ from collections import defaultdict
 
 class CollaborativeFilterModel:
     """
-    示例: Item-based协同过滤
     - fit() 通过用户-题目-评分 计算 item相似度矩阵 self.item_sim_map
     - predict_k_items_for_user() 给定 user_id 召回最相似item
     - predict_score(user_id, item_id) 计算用户对 item_id 的预测评分(用于最终打分)
@@ -13,9 +12,9 @@ class CollaborativeFilterModel:
 
     def __init__(self, sim_threshold=0.0):
         self.sim_threshold = sim_threshold
-        self.item_sim_map = defaultdict(dict)  # {itemA: {itemB: simAB, ...}, ...}
-        self.user_items = defaultdict(dict)    # {user: {item: rating}}
-        self.item_users = defaultdict(dict)    # {item: {user: rating}}
+        self.item_sim_map = defaultdict(dict)
+        self.user_items = defaultdict(dict)
+        self.item_users = defaultdict(dict)
 
     def fit(self, interaction_rows):
         """
@@ -45,7 +44,7 @@ class CollaborativeFilterModel:
             for j in range(i+1, n):
                 A = items[i]
                 B = items[j]
-                # dot = sum( rA*rB ) over all user that rated both
+                # dot = sum( rA*rB )
                 dot = 0.0
                 for userA, rA in self.item_users[A].items():
                     if userA in self.item_users[B]:
@@ -69,7 +68,7 @@ class CollaborativeFilterModel:
         """
         if user_id not in self.user_items:
             return []
-        done_items = self.user_items[user_id]  # user对它们有评分
+        done_items = self.user_items[user_id]
         # 计算对所有 未做过 item 的预测
         score_map = defaultdict(float)
         for done_it, ratDone in done_items.items():

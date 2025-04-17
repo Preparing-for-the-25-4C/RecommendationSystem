@@ -4,13 +4,10 @@ import math
 
 def diversity_rerank(candidate_list, question_db, top_n=10, alpha=0.3):
     """
-    对 candidate_list(已排序) 做多样性重排, 示例: greedy插入:
-      - alpha=相似度惩罚权重, 越大表示越强调多样性(惩罚相似项目).
-      - question_db: {qid: { 'vector':[...], ... }, ...}
+    对 candidate_list(已排序) 做多样性重排
+    alpha=相似度惩罚权重, 越大表示越强调多样性(惩罚相似项目).
 
-    算法示意: 依次从头到尾, 对下一个candidate,
     计算与已选集合平均相似度, cost= rank_score - alpha*(avg_sim),
-    选 cost 最大者
     """
     if len(candidate_list)<=1:
         return candidate_list[:top_n]
@@ -40,12 +37,7 @@ def diversity_rerank(candidate_list, question_db, top_n=10, alpha=0.3):
 def _score(qid, selected, qdb, alpha, get_vector_func):
     """
     cost = (pos_in_candidate_list or some base score) - alpha*(average similarity to selected)
-    这里简化: base_score= length - index  (越前越大),
-    or可改为 question_db[qid]["rank_score"]
     """
-    # 先做个简化, base_score=1000-index
-    # 真实情况需要在多样性重排前保留个score
-    # 这里仅演示
     base_score=100.0
     # 计算与selected的平均相似
     if not selected:

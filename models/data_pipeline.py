@@ -6,13 +6,6 @@ from typing import List, Dict, Optional
 
 
 class DataPipeline:
-    """
-    主要功能：
-      - 读取 CSV
-      - 清洗转换
-      - (可选) 过滤空描述/空兴趣
-      - 返回（或保存）结构化结果
-    """
 
     def __init__(self, input_csv: str, output_csv: Optional[str] = None):
         """
@@ -25,7 +18,6 @@ class DataPipeline:
     def load_data(self) -> List[Dict]:
         """
         读取 input_csv 并将其解析为 list of dict。
-        :return: [{'user_id':..., 'question_id':..., ...}, ...]
         """
         if not os.path.exists(self.input_csv):
             print(f"[DataPipeline] input CSV '{self.input_csv}' not found!")
@@ -53,10 +45,6 @@ class DataPipeline:
         """
         cleaned = []
         for row in data_rows:
-            # 1) 强制转换 user_id, question_id, views, rating
-            #    假设 user_id, question_id 是 int；若 CSV 中可能是 str，需要转一下
-            #    如果 CSV 中是 "1"，则 int("1") => 1
-            #    出现异常时可以继续或跳过
             try:
                 user_id = int(row.get("user_id", 0))
             except ValueError:
@@ -78,10 +66,7 @@ class DataPipeline:
             timestamp = row.get("timestamp", "").strip()
 
             user_interest_str = row.get("user_interest", "").strip()
-            # 如果需要将其变为 list，可以在这里分割（如空格/逗号）
-            # 如果只想保留原字符串，也可以直接用
-            # 例如： interest_list = user_interest_str.split() if user_interest_str else []
-            # 这里演示保留原字符串
+
             user_interest = user_interest_str
 
             question_keywords_str = row.get("question_keywords", "").strip()
@@ -92,7 +77,6 @@ class DataPipeline:
 
             # 3) 如果需要过滤空描述
             if drop_empty_description and not question_desc:
-                # 跳过
                 continue
 
             new_item = {
@@ -101,8 +85,8 @@ class DataPipeline:
                 "timestamp": timestamp,
                 "views": views,
                 "rating": rating,
-                "user_interest": user_interest,      # or interest_list
-                "question_keywords": question_keywords,   # or keywords_list
+                "user_interest": user_interest,
+                "question_keywords": question_keywords,
                 "question_description": question_desc
             }
             cleaned.append(new_item)
@@ -138,7 +122,6 @@ class DataPipeline:
 
     def run_pipeline(self, drop_empty_description: bool = False) -> List[Dict]:
         """
-        主流程：读取 -> 清洗 -> (可选)过滤空描述 -> 写出 & 返回
         :param drop_empty_description: 若为 True，则丢掉 question_description 为空的行
         :return: 清洗后的列表
         """
@@ -152,20 +135,16 @@ class DataPipeline:
 
 def demo_data_pipeline():
     """
-    演示用法
-    假设 data.csv 就在当前目录
+    演示
     """
-    input_csv = "data.csv"          # 你的 CSV 路径
+    input_csv = "data.csv"          # CSV 路径
     output_csv = "cleaned_data.csv" # 输出文件
 
     pipeline = DataPipeline(input_csv, output_csv)
 
-    # 例如想过滤掉 question_description 为空的行
     final_data = pipeline.run_pipeline(drop_empty_description=True)
 
-    # 后续你可在内存中使用 final_data 训练模型，或加载 cleaned_data.csv
     print("\n[demo_data_pipeline] Sample row =>", final_data[0] if final_data else None)
-
 
 if __name__ == "__main__":
     demo_data_pipeline()
